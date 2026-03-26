@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scramble for Africa – 4 Player Board Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--ocean:#0a1a2e;--panel:#12201a;--border:#3a5030;--gold:#c8a951;--gold2:#e8c97a;--text:#e8dcc0;--muted:#8a9a7a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Crimson Text',Georgia,serif;background:var(--ocean);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* SETUP */
+#setup-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;background:radial-gradient(ellipse at 50% 40%,#1a3020 0%,#0a1a2e 70%);overflow-y:auto;padding:20px 0;}
+.setup-title h1{font-family:'Cinzel',serif;font-size:2.3rem;color:var(--gold);text-shadow:0 0 30px rgba(200,169,81,.5);letter-spacing:3px;text-align:center;}
+.setup-title p{font-style:italic;color:var(--muted);font-size:1rem;text-align:center;margin-top:4px;}
+.setup-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 26px;width:500px;max-width:95vw;}
+.setup-card h3{font-family:'Cinzel',serif;color:var(--gold);font-size:0.85rem;margin-bottom:12px;letter-spacing:2px;text-transform:uppercase;}
+.count-row{display:flex;gap:8px;}
+.count-btn{flex:1;padding:10px;border:2px solid var(--border);background:transparent;color:var(--text);border-radius:8px;cursor:pointer;font-family:'Cinzel',serif;font-size:1rem;transition:all .2s;}
+.count-btn:hover{border-color:var(--gold);}
+.count-btn.active{border-color:var(--gold);background:rgba(200,169,81,.15);color:var(--gold);}
+.player-rows{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.player-row{display:flex;align-items:center;gap:10px;}
+.p-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.3);}
+.p-name-input{flex:1;padding:7px 11px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Crimson Text',serif;font-size:1rem;}
+.p-name-input:focus{outline:none;border-color:var(--gold);}
+.cpu-label{flex:1;padding:7px 11px;color:var(--muted);font-style:italic;font-size:0.9rem;}
+.cpu-badge{font-size:0.72rem;padding:3px 9px;border-radius:12px;background:rgba(200,169,81,.12);color:var(--gold);border:1px solid rgba(200,169,81,.3);font-family:'Cinzel',serif;letter-spacing:1px;flex-shrink:0;}
+#start-btn{padding:13px 44px;background:linear-gradient(135deg,#a07a30,var(--gold));color:#0d1a0d;border:none;border-radius:8px;font-family:'Cinzel',serif;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:2px;transition:all .2s;box-shadow:0 4px 20px rgba(200,169,81,.3);}
+#start-btn:hover{transform:translateY(-2px);}
+.rules-toggle{background:none;border:1px solid var(--border);color:var(--muted);font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:1px;cursor:pointer;padding:7px 18px;border-radius:20px;transition:all .2s;}
+.rules-toggle:hover{border-color:var(--gold);color:var(--gold);}
+#rules-box{display:none;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 20px;width:500px;max-width:95vw;font-size:0.86rem;line-height:1.55;}
+#rules-box h4{font-family:'Cinzel',serif;color:var(--gold);font-size:0.8rem;margin:8px 0 4px;letter-spacing:1px;}
+#rules-box ul{padding-left:14px;color:var(--muted);}
+
+/* GAME */
+#game-screen{display:none;flex-direction:column;height:100vh;overflow:hidden;}
+#header{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border-bottom:2px solid var(--border);padding:5px 14px;flex-shrink:0;}
+#header h1{font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);letter-spacing:2px;}
+#round-badge{font-family:'Cinzel',serif;font-size:0.85rem;background:rgba(0,0,0,.4);border:1px solid var(--border);padding:3px 14px;border-radius:20px;color:var(--gold);}
+.header-right{display:flex;align-items:center;gap:10px;}
+#cpu-thinking{display:none;font-size:0.75rem;color:var(--gold);font-style:italic;padding:3px 10px;border-radius:12px;background:rgba(200,169,81,.1);border:1px solid rgba(200,169,81,.2);animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:.5;}50%{opacity:1;}}
+#turn-badge{font-size:0.85rem;padding:3px 12px;border-radius:20px;font-weight:600;border:2px solid;}
+#main-area{display:flex;flex:1;overflow:hidden;}
+#map-container{flex:1;overflow:hidden;background:var(--ocean);}
+#map-svg{width:100%;height:100%;}
+
+/* SIDEBAR */
+#sidebar{width:290px;flex-shrink:0;background:var(--panel);border-left:2px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.ss{padding:9px 12px;border-bottom:1px solid var(--border);}
+.ss h3{font-family:'Cinzel',serif;font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+#cp-name{font-family:'Cinzel',serif;font-size:1rem;margin-bottom:5px;}
+#cp-status{font-size:0.76rem;display:flex;justify-content:space-between;margin-bottom:6px;}
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.res-item{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.3);border-radius:5px;padding:3px 6px;font-size:0.82rem;border:1px solid var(--border);}
+.res-em{font-size:0.9rem;}
+.res-name{color:var(--muted);font-size:0.7rem;}
+.res-count{font-weight:700;margin-left:auto;color:var(--gold2);font-family:'Cinzel',serif;}
+#phase-title{font-size:0.83rem;margin-bottom:4px;}
+#phase-hint{font-size:0.78rem;color:var(--muted);margin-bottom:7px;min-height:24px;line-height:1.4;font-style:italic;}
+.btn{display:block;width:100%;padding:6px 8px;margin-bottom:4px;border-radius:5px;border:1px solid;cursor:pointer;font-family:'Crimson Text',serif;font-size:0.88rem;transition:all .18s;text-align:left;}
+.btn:disabled{opacity:.32;cursor:not-allowed;}
+.btn-gold{background:linear-gradient(135deg,#8a6a20,var(--gold));color:#0d1a0d;border-color:var(--gold);font-weight:700;font-family:'Cinzel',serif;font-size:0.8rem;letter-spacing:1px;}
+.btn-gold:not(:disabled):hover{background:linear-gradient(135deg,var(--gold),var(--gold2));}
+.btn-sec{background:transparent;color:var(--text);border-color:var(--border);}
+.btn-sec:not(:disabled):hover{border-color:var(--gold);color:var(--gold);}
+.btn-red{background:transparent;color:#e74c3c;border-color:#e74c3c;}
+.btn-red:not(:disabled):hover{background:rgba(231,76,60,.15);}
+
+/* Event card in sidebar */
+#event-panel{display:none;}
+.event-card-sm{background:rgba(200,169,81,0.07);border:1px solid rgba(200,169,81,0.28);border-radius:6px;padding:7px 9px;}
+.event-card-sm .ec-title{font-family:'Cinzel',serif;color:var(--gold);font-size:0.72rem;margin-bottom:3px;}
+.event-card-sm .ec-fx{color:var(--muted);font-size:0.75rem;line-height:1.35;}
+
+#players-scores{flex:1;overflow-y:auto;padding:9px 12px;}
+#players-scores h3{font-family:'Cinzel',serif;font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+.player-card{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:7px;padding:7px 9px;margin-bottom:5px;}
+.player-card.active-player{border-color:var(--gold);}
+.pc-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.pc-dot{width:9px;height:9px;border-radius:50%;}
+.pc-name{font-size:0.85rem;font-weight:600;}
+.pc-badge{font-size:0.6rem;padding:1px 5px;border-radius:7px;background:rgba(150,100,0,.3);color:#c8a951;border:1px solid rgba(200,169,81,.2);font-family:'Cinzel',serif;margin-left:2px;}
+.pc-score{margin-left:auto;font-family:'Cinzel',serif;color:var(--gold);font-size:0.82rem;}
+.pc-res{display:flex;gap:4px;font-size:0.72rem;color:var(--muted);flex-wrap:wrap;}
+.pc-prestige{font-size:0.72rem;color:#f39c12;margin-top:2px;}
+
+#log-area{height:72px;background:rgba(0,0,0,.3);border-top:1px solid var(--border);overflow-y:auto;padding:4px 11px;flex-shrink:0;}
+.log-line{font-size:0.74rem;color:var(--muted);line-height:1.4;padding:1px 0;}
+.log-line.lg-event{color:var(--gold);}
+.log-line.lg-combat{color:#e74c3c;}
+.log-line.lg-collect{color:#5a9;}
+.log-line.lg-cpu{color:#7a9abf;font-style:italic;}
+.log-line.lg-prestige{color:#f39c12;}
+.log-line.lg-resist{color:#e67e22;}
+.log-line.lg-warn{color:#e67e22;}
+
+/* MODAL */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;}
+#modal-overlay.open{display:flex;}
+#modal{background:var(--panel);border:2px solid var(--gold);border-radius:12px;padding:22px;width:460px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 0 40px rgba(200,169,81,.2);}
+#modal h2{font-family:'Cinzel',serif;color:var(--gold);font-size:1.1rem;margin-bottom:12px;}
+#modal-body{margin-bottom:14px;font-size:0.91rem;line-height:1.6;}
+#modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+.mbtn{padding:7px 18px;border-radius:6px;cursor:pointer;font-family:'Cinzel',serif;font-size:0.8rem;letter-spacing:1px;border:1px solid;transition:all .18s;}
+.mbtn-gold{background:var(--gold);color:#0d1a0d;border-color:var(--gold);font-weight:700;}
+.mbtn-gold:hover{background:var(--gold2);}
+.mbtn-ghost{background:transparent;color:var(--text);border-color:var(--border);}
+.mbtn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.hist-box{background:rgba(0,0,0,.35);border-radius:7px;padding:10px 12px;margin-bottom:10px;border-left:3px solid var(--gold);}
+.hist-box .hl{font-family:'Cinzel',serif;font-size:0.68rem;color:var(--muted);letter-spacing:1px;margin-bottom:5px;text-transform:uppercase;}
+.hist-box p{font-size:0.84rem;line-height:1.5;color:var(--muted);}
+.fx-box{background:rgba(200,169,81,0.08);border-radius:7px;padding:9px 11px;border:1px solid rgba(200,169,81,0.25);}
+.fx-box .fl{font-family:'Cinzel',serif;font-size:0.68rem;color:var(--gold);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase;}
+.dice-row{display:flex;gap:14px;justify-content:center;margin:12px 0;}
+.die{width:66px;height:66px;background:#f0e8d0;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:2.7rem;color:#1a1a1a;border:3px solid #c8a87a;box-shadow:0 4px 14px rgba(0,0,0,.5);font-weight:900;font-family:'Cinzel',serif;transition:background .3s,transform .3s;}
+@keyframes diceShake{0%,100%{transform:translate(0,0) rotate(0deg);}15%{transform:translate(-4px,3px) rotate(-12deg);}30%{transform:translate(3px,-3px) rotate(8deg);}45%{transform:translate(-3px,4px) rotate(-6deg);}60%{transform:translate(4px,-2px) rotate(10deg);}75%{transform:translate(-2px,3px) rotate(-8deg);}90%{transform:translate(3px,-1px) rotate(5deg);}}
+.die.rolling{animation:diceShake 0.13s ease-in-out infinite;background:#e8d890;}
+.die.die-win{background:#2ecc71;border-color:#1a8a4a;color:#fff;transform:scale(1.13);}
+.die.die-lose{background:#bbb;border-color:#888;opacity:0.65;transform:scale(0.9);}
+.trade-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.trade-panel{background:rgba(0,0,0,.3);border-radius:7px;padding:10px;}
+.trade-panel h4{font-family:'Cinzel',serif;font-size:0.73rem;letter-spacing:1px;margin-bottom:6px;}
+.trade-res-row{display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:0.83rem;}
+.trade-input{width:40px;padding:2px 4px;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.83rem;text-align:center;}
+.trade-input:focus{outline:none;border-color:var(--gold);}
+
+/* WIN */
+#win-screen{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:16px;overflow-y:auto;padding:20px 0;}
+#win-screen.open{display:flex;}
+#win-screen h1{font-family:'Cinzel',serif;color:var(--gold);font-size:2rem;text-align:center;text-shadow:0 0 30px rgba(200,169,81,.5);}
+.win-card{background:var(--panel);border:2px solid var(--gold);border-radius:12px;padding:20px 26px;min-width:360px;max-width:94vw;}
+.win-card h3{font-family:'Cinzel',serif;color:var(--muted);font-size:0.75rem;letter-spacing:2px;margin-bottom:11px;text-align:center;}
+.win-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.win-row:last-child{border:none;}
+.win-row.winner{color:var(--gold);}
+.win-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.win-pts{margin-left:auto;font-family:'Cinzel',serif;font-size:1.05rem;white-space:nowrap;}
+.win-sub{font-size:0.73rem;color:var(--muted);}
+#play-again-btn{padding:11px 34px;background:linear-gradient(135deg,#8a6a20,var(--gold));color:#0d1a0d;border:none;border-radius:8px;font-family:'Cinzel',serif;font-size:0.9rem;font-weight:700;cursor:pointer;letter-spacing:2px;transition:all .2s;}
+#play-again-btn:hover{transform:translateY(-2px);}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup-screen">
+  <div class="setup-title">
+    <h1>SCRAMBLE FOR AFRICA</h1>
+    <p>4-Player Board Game — Ages of Imperialism</p>
+  </div>
+  <div class="setup-card">
+    <h3>How Many Human Players?</h3>
+    <div class="count-row">
+      <button class="count-btn" data-n="1">1 Human</button>
+      <button class="count-btn active" data-n="2">2 Humans</button>
+      <button class="count-btn" data-n="3">3 Humans</button>
+      <button class="count-btn" data-n="4">4 Humans</button>
+    </div>
+    <div class="player-rows" id="player-setup-rows"></div>
+  </div>
+  <button id="start-btn">BEGIN THE SCRAMBLE</button>
+  <button class="rules-toggle" onclick="toggleRules()">📜 How to Play</button>
+  <div id="rules-box">
+    <h4>Objective — 15 Rounds</h4>
+    <p>Control resources and earn Prestige. Highest combined score wins!</p>
+    <h4>Resources (per collection)</h4>
+    <ul><li>🪨 Coal = 4 pts &nbsp;|&nbsp; 💎 Diamonds = 4 pts</li>
+    <li>💰 Gold = 3 pts &nbsp;|&nbsp; ⚙️ Iron = 2 pts &nbsp;|&nbsp; 🧂 Salt = 1 pt</li></ul>
+    <h4>Prestige ★ (new!)</h4>
+    <ul><li>First to claim a territory: +1 ★</li>
+    <li>Build a factory: +2 ★ | Win combat: +1 ★</li>
+    <li>Coastal territory held each turn: +1 ★</li>
+    <li>Control full subregion: +2 ★ per turn</li></ul>
+    <h4>Export Routes (new!)</h4>
+    <p>🚢 If you hold NO coastal territory, your collection is halved each round!</p>
+    <h4>African Resistance (new!)</h4>
+    <p>🛡️ Ethiopia, Ghana, and South Africa resist entry — roll the required number or be repelled.</p>
+    <h4>Berlin Conference — Round 5 (new!)</h4>
+    <p>🏛️ Factories without a pawn present are removed. Effective occupation required!</p>
+    <h4>Event Cards (new!)</h4>
+    <p>📋 A historical event card is drawn each round, affecting all empires.</p>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div id="header">
+    <h1>⚔️ SCRAMBLE FOR AFRICA</h1>
+    <div id="round-badge">Round <span id="round-num">1</span> / 15</div>
+    <div class="header-right">
+      <div id="cpu-thinking">🤖 CPU thinking…</div>
+      <div id="turn-badge">—</div>
+    </div>
+  </div>
+  <div id="main-area">
+    <div id="map-container">
+      <svg id="map-svg" viewBox="0 0 650 720" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+    <div id="sidebar">
+      <div class="ss">
+        <div id="cp-name">—</div>
+        <div id="cp-status"></div>
+        <div class="res-grid" id="cp-resources"></div>
+      </div>
+      <div class="ss">
+        <div id="phase-title">—</div>
+        <div id="phase-hint">—</div>
+        <div id="action-btns"></div>
+      </div>
+      <div class="ss" id="event-panel">
+        <h3>📋 Current Event</h3>
+        <div class="event-card-sm">
+          <div class="ec-title" id="ev-title"></div>
+          <div class="ec-fx" id="ev-fx"></div>
+        </div>
+      </div>
+      <div id="players-scores"><h3>Scoreboard</h3><div id="all-players-list"></div></div>
+      <div id="log-area"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2 id="modal-title">—</h2>
+    <div id="modal-body"></div>
+    <div id="modal-btns"></div>
+  </div>
+</div>
+
+<!-- WIN -->
+<div id="win-screen">
+  <h1>🏆 GAME OVER</h1>
+  <div class="win-card"><h3>FINAL SCORES</h3><div id="win-scores-list"></div></div>
+  <button id="play-again-btn" onclick="location.reload()">PLAY AGAIN</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════
+const PLAYER_COLORS=['#c0392b','#2474a6','#27ae60','#d4a017'];
+const EMPIRE_NAMES=['Britain','France','Germany','Belgium'];
+
+const RES={
+  coal:    {name:'Coal',    em:'🪨',pts:4},
+  diamonds:{name:'Diamonds',em:'💎',pts:4},
+  gold:    {name:'Gold',   em:'💰',pts:3},
+  iron:    {name:'Iron',   em:'⚙️', pts:2},
+  salt:    {name:'Salt',   em:'🧂',pts:1},
+};
+
+const RCOL={start:'#1a5a8a',northern:'#6b2d7a',western:'#5a7a18',central:'#8a4535',eastern:'#3d5e6e',southern:'#7a1515'};
+
+const COASTAL=new Set(['morocco','algeria','libya','egypt','sudan','mauritania','senegal','guinea','sierra_leone','ivory_coast','ghana','nigeria','cameroon','gabon','congo','angola','namibia','south_africa','mozambique','madagascar','tanzania','kenya','somalia']);
+
+const RESIST_DATA={
+  ethiopia:    {tokens:2,threshold:5,label:'Kingdom of Ethiopia',flavor:'Ethiopia defeated Italy at the Battle of Adwa in 1896 — the only African nation to repel a European colonial power outright.'},
+  ghana:       {tokens:1,threshold:4,label:'Ashanti Confederation',flavor:'The Ashanti people fought multiple wars against British expansion throughout the 19th century, resisting colonial rule with remarkable tenacity.'},
+  south_africa:{tokens:1,threshold:4,label:'Zulu & Boer Resistance',flavor:'The Zulu kingdom and Boer settlers both fought costly wars against the British Empire, proving that colonization was never without fierce resistance.'},
+};
+
+const SUBREGIONS={
+  northern:['morocco','algeria','libya','egypt','sudan'],
+  western: ['mauritania','senegal','mali','guinea','sierra_leone','ivory_coast','ghana','nigeria','niger','chad'],
+  central: ['cameroon','gabon','car','congo','drc','angola'],
+  eastern: ['ethiopia','somalia','uganda','kenya','tanzania','mozambique','madagascar'],
+  southern:['zambia','zimbabwe','botswana','namibia','south_africa'],
+};
+
+const TERR={
+  start:       {name:'Neutral Waters',region:'start',   x:62, y:128,resource:null,     isStart:true, coastal:false,resistance:false,conn:['morocco','mauritania']},
+  morocco:     {name:'Morocco',       region:'northern',x:118,y:198, resource:'salt',               coastal:true, resistance:false,conn:['start','algeria','mauritania']},
+  algeria:     {name:'Algeria',       region:'northern',x:228,y:185, resource:'iron',               coastal:true, resistance:false,conn:['morocco','libya','mali','niger','mauritania']},
+  libya:       {name:'Libya',         region:'northern',x:342,y:188, resource:'gold',               coastal:true, resistance:false,conn:['algeria','egypt','chad','niger']},
+  egypt:       {name:'Egypt',         region:'northern',x:455,y:186, resource:'gold',               coastal:true, resistance:false,conn:['libya','sudan']},
+  sudan:       {name:'Sudan',         region:'northern',x:458,y:298, resource:'iron',               coastal:true, resistance:false,conn:['egypt','chad','ethiopia','uganda','car']},
+  mauritania:  {name:'Mauritania',    region:'western', x:110,y:268, resource:'iron',               coastal:true, resistance:false,conn:['start','morocco','algeria','mali','senegal']},
+  senegal:     {name:'Senegal',       region:'western', x:74, y:330, resource:'salt',               coastal:true, resistance:false,conn:['mauritania','mali','guinea']},
+  mali:        {name:'Mali',          region:'western', x:198,y:272, resource:'gold',               coastal:false,resistance:false,conn:['mauritania','algeria','niger','senegal','guinea','ivory_coast']},
+  guinea:      {name:'Guinea',        region:'western', x:100,y:388, resource:'diamonds',           coastal:true, resistance:false,conn:['senegal','mali','sierra_leone','ivory_coast']},
+  sierra_leone:{name:'Sierra Leone',  region:'western', x:115,y:416, resource:'diamonds',           coastal:true, resistance:false,conn:['guinea','ivory_coast']},
+  ivory_coast: {name:'Ivory Coast',   region:'western', x:148,y:410, resource:'gold',               coastal:true, resistance:false,conn:['mali','guinea','sierra_leone','ghana']},
+  ghana:       {name:'Ghana',         region:'western', x:198,y:405, resource:'gold',               coastal:true, resistance:true, conn:['ivory_coast','nigeria']},
+  nigeria:     {name:'Nigeria',       region:'western', x:264,y:368, resource:'coal',               coastal:true, resistance:false,conn:['niger','chad','ghana','cameroon']},
+  niger:       {name:'Niger',         region:'western', x:305,y:272, resource:'salt',               coastal:false,resistance:false,conn:['algeria','libya','mali','chad','nigeria']},
+  chad:        {name:'Chad',          region:'western', x:374,y:312, resource:'salt',               coastal:false,resistance:false,conn:['niger','libya','sudan','nigeria','cameroon','car']},
+  cameroon:    {name:'Cameroon',      region:'central', x:320,y:396, resource:'coal',               coastal:true, resistance:false,conn:['nigeria','chad','car','congo','drc','gabon']},
+  gabon:       {name:'Gabon',         region:'central', x:298,y:460, resource:'iron',               coastal:true, resistance:false,conn:['cameroon','congo']},
+  car:         {name:'C.A.R.',        region:'central', x:400,y:382, resource:'diamonds',           coastal:false,resistance:false,conn:['chad','sudan','cameroon','drc','congo']},
+  congo:       {name:'Congo',         region:'central', x:340,y:482, resource:'coal',               coastal:true, resistance:false,conn:['cameroon','drc','angola','gabon','car']},
+  drc:         {name:'DR Congo',      region:'central', x:422,y:466, resource:'diamonds',           coastal:false,resistance:false,conn:['cameroon','car','congo','angola','uganda','tanzania','zambia']},
+  angola:      {name:'Angola',        region:'central', x:358,y:548, resource:'iron',               coastal:true, resistance:false,conn:['congo','drc','zambia','namibia']},
+  ethiopia:    {name:'Ethiopia',      region:'eastern', x:492,y:325, resource:'gold',               coastal:false,resistance:true, conn:['sudan','somalia','kenya','uganda']},
+  somalia:     {name:'Somalia',       region:'eastern', x:548,y:352, resource:'salt',               coastal:true, resistance:false,conn:['ethiopia','kenya']},
+  uganda:      {name:'Uganda',        region:'eastern', x:467,y:408, resource:'coal',               coastal:false,resistance:false,conn:['sudan','drc','ethiopia','kenya','tanzania']},
+  kenya:       {name:'Kenya',         region:'eastern', x:510,y:422, resource:'diamonds',           coastal:true, resistance:false,conn:['ethiopia','somalia','uganda','tanzania']},
+  tanzania:    {name:'Tanzania',      region:'eastern', x:490,y:492, resource:'gold',               coastal:true, resistance:false,conn:['kenya','uganda','drc','zambia','mozambique']},
+  mozambique:  {name:'Mozambique',    region:'eastern', x:484,y:568, resource:'coal',               coastal:true, resistance:false,conn:['tanzania','zambia','zimbabwe','south_africa']},
+  madagascar:  {name:'Madagascar',    region:'eastern', x:570,y:538, resource:'salt',               coastal:true, resistance:false,conn:['mozambique']},
+  zambia:      {name:'Zambia',        region:'southern',x:436,y:528, resource:'iron',               coastal:false,resistance:false,conn:['drc','angola','tanzania','zimbabwe','botswana','mozambique','namibia']},
+  zimbabwe:    {name:'Zimbabwe',      region:'southern',x:450,y:590, resource:'coal',               coastal:false,resistance:false,conn:['zambia','botswana','south_africa','mozambique']},
+  botswana:    {name:'Botswana',      region:'southern',x:416,y:632, resource:'diamonds',           coastal:false,resistance:false,conn:['namibia','zambia','zimbabwe','south_africa']},
+  namibia:     {name:'Namibia',       region:'southern',x:363,y:615, resource:'diamonds',           coastal:true, resistance:false,conn:['angola','zambia','botswana','south_africa']},
+  south_africa:{name:'S. Africa',     region:'southern',x:413,y:680, resource:'gold',               coastal:true, resistance:true, conn:['namibia','botswana','zimbabwe','mozambique']},
+};
+
+// ─── Event Deck ────────────────────────────────────
+function shuffleArr(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+const EVENT_TEMPLATES=[
+  {id:'missionary',icon:'✝️',title:'Missionary Reports',
+   hist:'European missionaries like David Livingstone mapped Africa\'s interior before colonists arrived, reporting on resources and populations to build public support for "civilizing" the continent.',
+   fxDesc:'Empire with the most territories gains +3 Prestige.',
+   apply(){const s=[...G.players].sort((a,b)=>myPawns(b.id).length-myPawns(a.id).length);s[0].prestige+=3;return `${s[0].name} leads in territory — gains +3 ★`;}},
+  {id:'diamond_rush',icon:'💎',title:'Diamond Rush!',
+   hist:'Diamond discoveries in South Africa (1867) sent European newspapers into a frenzy, greatly accelerating the colonial land grab across the entire continent.',
+   fxDesc:'All empires collect +1 Diamond this round.',
+   apply(){G.roundFx.bonusRes={type:'diamonds',amt:1};return 'All empires collect +1 Diamond this round!';}},
+  {id:'native_uprising',icon:'🛡️',title:'Native Uprising',
+   hist:'African peoples resisted colonization everywhere — from the Mahdi rebellion in Sudan to the Herero uprising in Namibia. Resistance was constant, organized, and widespread.',
+   fxDesc:'Each empire loses 1 pawn from a random territory back to Neutral Waters.',
+   apply(){
+     const msgs=[];
+     G.players.forEach((pl,pid)=>{
+       const out=myPawns(pid).filter(p=>p.location!=='start');
+       if(out.length){const v=out[Math.floor(Math.random()*out.length)],t=getT(v.location);t.pawns=t.pawns.filter(id=>id!==v.id);v.location='start';getT('start').pawns.push(v.id);msgs.push(`${pl.name} loses pawn in ${t.name}`);}
+     });
+     return msgs.join('; ')||'No pawns displaced.';}},
+  {id:'royal_charter',icon:'📜',title:'Royal Charter Granted',
+   hist:'Companies like the British East Africa Company and the Royal Niger Company received government charters, blurring the line between corporate profit and national conquest.',
+   fxDesc:'Build a factory this round for only Iron + Coal — no Salt required.',
+   apply(){G.roundFx.cheapFactory=true;return 'Factory discount active — no Salt needed this round!';}},
+  {id:'press_glory',icon:'📰',title:'Imperial Glory!',
+   hist:'European newspapers glorified colonial generals as national heroes, stoking public competition between powers. Germany scrambled for territory partly just to match Britain\'s prestige.',
+   fxDesc:'The empire with the most Prestige gains +2 more Prestige.',
+   apply(){const s=[...G.players].sort((a,b)=>b.prestige-a.prestige);if(s[0].prestige>0){s[0].prestige+=2;return `${s[0].name} dominates the headlines — +2 ★`;}return 'No prestige yet.';}},
+  {id:'suez_canal',icon:'🚢',title:'Suez Canal Opens',
+   hist:'When the 1869 Suez Canal opened, Egypt became strategically vital. Britain seized it in 1882 not for resources but to protect the route to India — a textbook case of strategic colonialism.',
+   fxDesc:'Empires controlling Egypt or East African coastal territories gain +1 Gold.',
+   apply(){
+     const keys=['egypt','tanzania','kenya','somalia','mozambique'];const msgs=[];
+     G.players.forEach((pl,pid)=>{if(myPawns(pid).some(p=>keys.includes(p.location))){pl.resources.gold++;msgs.push(`${pl.name} +1 💰`);}});
+     return msgs.join('; ')||'No empires hold these territories.';}},
+  {id:'scramble_fast',icon:'⚡',title:'The Scramble Intensifies!',
+   hist:'After 1884, European powers raced to plant flags before rivals arrived. Maps were drawn for territories that no European had ever visited — speed mattered far more than knowledge.',
+   fxDesc:'All pawns may move 3 spaces instead of 2 this round.',
+   apply(){G.roundFx.extraStep=true;return 'All pawns move up to 3 spaces this round!';}},
+  {id:'famine',icon:'🌵',title:'Regional Famine',
+   hist:'Colonial disruption of traditional farming systems and forced labor on export crops caused devastating famines across West and East Africa in the 1890s–1900s.',
+   fxDesc:'All empires lose 1 Salt from their stockpile.',
+   apply(){G.players.forEach(pl=>{if(pl.resources.salt>0)pl.resources.salt--;});return 'All empires lose 1 Salt.';}},
+  {id:'kingdoms_unite',icon:'⚔️',title:'African Kingdoms Resist',
+   hist:'Word of European ambitions spread across the continent. The Sokoto Caliphate, Ashanti Empire, Zulu kingdom, and others coordinated resistance where geography allowed.',
+   fxDesc:'All Resistance tokens are fully restored.',
+   apply(){Object.keys(RESIST_DATA).forEach(tid=>{if(G.territories[tid])G.territories[tid].resistTokens=RESIST_DATA[tid].tokens;});return 'Resistance restored in Ethiopia, Ghana, and South Africa!';}},
+  {id:'telegraph',icon:'📡',title:'Telegraph Lines Established',
+   hist:'Submarine telegraph cables (1870s–80s) connected Africa to European capitals, enabling rapid colonial orders — and faster exploitation of resources once discovered.',
+   fxDesc:'Each empire gains +1 Prestige per factory they own.',
+   apply(){const msgs=[];G.players.forEach((pl,pid)=>{const f=Object.values(G.territories).filter(t=>t.factory===pid).length;if(f>0){pl.prestige+=f;msgs.push(`${pl.name} +${f} ★`);}});return msgs.join('; ')||'No factories — no bonus.';}},
+  {id:'expo',icon:'🏛️',title:'Colonial Exhibition',
+   hist:'World\'s Fairs in Paris and London displayed African peoples and resources as trophies of empire, building public support for colonial spending and fueling nationalist rivalry.',
+   fxDesc:'The empire with the most factories gains +3 Prestige.',
+   apply(){const s=G.players.map(pl=>({pl,f:Object.values(G.territories).filter(t=>t.factory===pl.id).length})).sort((a,b)=>b.f-a.f);if(s[0].f>0){s[0].pl.prestige+=3;return `${s[0].pl.name} leads in industry — +3 ★`;}return 'No factories yet.';}},
+  {id:'depression',icon:'📉',title:'European Trade Depression',
+   hist:'The Long Depression (1873–1896) was a direct cause of the Scramble. Falling profits at home drove European powers to seek new raw material sources and markets in Africa.',
+   fxDesc:'All empires lose 1 Iron from their stockpile.',
+   apply(){G.players.forEach(pl=>{if(pl.resources.iron>0)pl.resources.iron--;});return 'All empires lose 1 Iron.';}},
+  {id:'gold_rush',icon:'💰',title:'Gold Discovered!',
+   hist:'The Witwatersrand gold rush (1886) transformed Southern Africa overnight. Wherever precious metals were found, European governments followed, treaty or no treaty.',
+   fxDesc:'All empires collect +1 Gold this round.',
+   apply(){G.roundFx.bonusRes={type:'gold',amt:1};return 'All empires collect +1 Gold this round!';}},
+  {id:'boer',icon:'💥',title:'Armed Resistance',
+   hist:'The Boer Wars (1899–1902) cost Britain 22,000 soldiers and £210 million. Colonies were never simply handed over — military resistance made empire far more expensive than promised.',
+   fxDesc:'Each empire with pawns in Southern Africa must roll 4+ or lose 1 pawn.',
+   apply(){
+     const sth=['south_africa','zimbabwe','botswana','namibia','zambia'];const msgs=[];
+     G.players.forEach((pl,pid)=>{
+       myPawns(pid).filter(p=>sth.includes(p.location)).forEach(pawn=>{
+         const roll=Math.floor(Math.random()*6)+1;
+         if(roll<4){const t=getT(pawn.location);t.pawns=t.pawns.filter(id=>id!==pawn.id);pawn.location='start';getT('start').pawns.push(pawn.id);msgs.push(`${pl.name} loses pawn in ${t.name} (rolled ${roll})`);}
+       });
+     });
+     return msgs.join('; ')||'All empires held firm in the south.';}},
+];
+
+// ═══════════════════════════════════════════════════
+// SETUP UI
+// ═══════════════════════════════════════════════════
+let numHumans=2;
+function buildSetupRows(){
+  const rows=document.getElementById('player-setup-rows');rows.innerHTML='';
+  for(let i=0;i<4;i++){
+    const human=i<numHumans,row=document.createElement('div');row.className='player-row';
+    row.innerHTML=`<div class="p-dot" style="background:${PLAYER_COLORS[i]}"></div>`+
+      (human?`<input class="p-name-input" id="pname-${i}" value="${EMPIRE_NAMES[i]}" placeholder="${EMPIRE_NAMES[i]}">`
+             :`<div class="cpu-label">${EMPIRE_NAMES[i]} — CPU controlled</div>`)+
+      `<span class="cpu-badge">${human?'👤 Human':'🤖 CPU'}</span>`;
+    rows.appendChild(row);
+  }
+}
+document.querySelectorAll('.count-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{document.querySelectorAll('.count-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');numHumans=parseInt(btn.dataset.n);buildSetupRows();});
+});
+buildSetupRows();
+document.getElementById('start-btn').addEventListener('click',()=>{
+  const names=[],isHuman=[];
+  for(let i=0;i<4;i++){const inp=document.getElementById(`pname-${i}`);names.push(inp?inp.value.trim()||EMPIRE_NAMES[i]:EMPIRE_NAMES[i]);isHuman.push(i<numHumans);}
+  startGame(names,isHuman);
+});
+function toggleRules(){const b=document.getElementById('rules-box');b.style.display=b.style.display==='block'?'none':'block';}
+
+// ═══════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════
+let G={};
+let selectedPawnId=null,validMoves=[],movedPawnIds=new Set();
+
+function startGame(names,isHumanArr){
+  const territories={};
+  for(const[id,td]of Object.entries(TERR)){
+    const resTokens=td.resistance?(RESIST_DATA[id]?.tokens||1):0;
+    territories[id]={...td,conn:[...td.conn],pawns:[],factory:null,resistTokens:resTokens};
+  }
+  const players=names.map((name,i)=>({id:i,name,color:PLAYER_COLORS[i],isHuman:isHumanArr[i],resources:{coal:0,diamonds:0,gold:0,iron:0,salt:0},prestige:0,reserve:0}));
+  const pawns=[];
+  players.forEach((_,i)=>{for(let k=0;k<4;k++){const p={id:`p${i}_${k}`,player:i,location:'start',upgraded:false};pawns.push(p);territories.start.pawns.push(p.id);}});
+
+  G={territories,players,pawns,nextIdx:[4,4,4,4],round:1,currentPlayer:0,phase:'move',
+     eventDeck:shuffleArr([...EVENT_TEMPLATES]),eventIdx:0,berlinHeld:false,
+     roundFx:{},firstClaims:{}};
+
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('game-screen').style.display='flex';
+  renderAll();
+  logMsg('⚔️ The Scramble for Africa begins! 15 rounds. Resources + Prestige = Final Score.','lg-event');
+  scheduleCurrentTurn();
+}
+
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+const getPawn=id=>G.pawns.find(p=>p.id===id);
+const getT=id=>G.territories[id];
+const cp=()=>G.players[G.currentPlayer];
+const myPawns=pid=>G.pawns.filter(p=>p.player===pid&&p.location!=='reserve');
+const calcScore=pl=>Object.entries(RES).reduce((s,[r,v])=>s+(pl.resources[r]||0)*v.pts,0);
+const calcFinal=pl=>calcScore(pl)+pl.prestige;
+const hasCoast=pid=>myPawns(pid).some(p=>COASTAL.has(p.location))||Object.entries(G.territories).some(([tid,t])=>t.factory===pid&&COASTAL.has(tid));
+
+function rollDie(){return Math.floor(Math.random()*6)+1;}
+function rollPawn(pid){const p=getPawn(pid);return p.upgraded?Math.max(rollDie(),rollDie()):rollDie();}
+
+function getReachable(pawnId,overrideSteps){
+  const pawn=getPawn(pawnId),loc=pawn.location,terr=getT(loc);
+  const baseSteps=overrideSteps||(G.roundFx?.extraStep?3:2);
+  const steps=terr.pawns.some(pid=>{const q=getPawn(pid);return q&&q.player!==pawn.player;})?1:baseSteps;
+  const visited=new Set([loc]),reachable=[];let frontier=[loc];
+  for(let s=0;s<steps;s++){
+    const next=[];
+    for(const tid of frontier)for(const c of getT(tid).conn)if(!visited.has(c)){visited.add(c);reachable.push(c);next.push(c);}
+    frontier=next;
+  }
+  return reachable;
+}
+
+// ═══════════════════════════════════════════════════
+// EVENT CARDS & BERLIN CONFERENCE
+// ═══════════════════════════════════════════════════
+function drawEventCard(onDone){
+  if(G.eventIdx>=G.eventDeck.length){G.eventDeck=shuffleArr([...EVENT_TEMPLATES]);G.eventIdx=0;}
+  const card=G.eventDeck[G.eventIdx++];
+  G.roundFx={};
+  const result=card.apply();
+  document.getElementById('ev-title').textContent=`${card.icon} ${card.title}`;
+  document.getElementById('ev-fx').textContent=card.fxDesc;
+  document.getElementById('event-panel').style.display='block';
+  renderAll();
+  showModal(`${card.icon} ${card.title}`,
+    `<div class="hist-box"><div class="hl">Historical Context</div><p>${card.hist}</p></div>
+     <div class="fx-box"><div class="fl">Game Effect</div><p>${card.fxDesc}</p>
+     <p style="font-size:0.82rem;color:#5a9;margin-top:6px">Applied: ${result}</p></div>`,
+    [{label:`Continue — Round ${G.round}`,cls:'mbtn-gold',fn:()=>{closeModal();onDone();}}]);
+}
+
+function triggerBerlinConference(onDone){
+  G.berlinHeld=true;
+  const removed=[];
+  Object.entries(G.territories).forEach(([tid,t])=>{
+    if(t.factory!==null&&!t.isStart){
+      const ownerHasPawn=t.pawns.some(pid=>getPawn(pid)?.player===t.factory);
+      if(!ownerHasPawn){removed.push({name:t.name,owner:G.players[t.factory].name});t.factory=null;}
+    }
+  });
+  G.players.forEach((pl,pid)=>{
+    const legit=myPawns(pid).filter(p=>!getT(p.location).isStart).length;
+    if(legit>0){pl.prestige+=Math.floor(legit/2);logMsg(`${pl.name} gains ${Math.floor(legit/2)} ★ for legitimate holdings`,'lg-prestige');}
+  });
+  const rmHtml=removed.length
+    ?`<p style="margin-top:10px;color:#e74c3c;font-size:0.84rem">⚠️ Illegitimate factories removed: ${removed.map(r=>`${r.owner} in ${r.name}`).join(', ')}</p>`
+    :`<p style="margin-top:10px;color:#5a9;font-size:0.84rem">✓ All factories are legitimately held — none removed.</p>`;
+  renderAll();
+  showModal('🏛️ THE BERLIN CONFERENCE',
+    `<div class="hist-box"><div class="hl">1884 — 1885</div>
+    <p>Bismarck convenes 14 European nations in Berlin to divide Africa. <b>No African nation is invited.</b> The conference establishes that a European power can only claim territory where it has <em>effective occupation</em> — a physical presence on the ground.</p></div>
+    ${rmHtml}
+    <p style="margin-top:10px;font-size:0.84rem;color:var(--muted)">Players with legitimate territory gain Prestige. From now on, factories without a pawn present are <b>unprotected</b> by conference rules.</p>`,
+    [{label:'Continue the Scramble',cls:'mbtn-gold',fn:()=>{closeModal();onDone();}}]);
+}
+
+// ═══════════════════════════════════════════════════
+// CORE ACTIONS
+// ═══════════════════════════════════════════════════
+function doMove(pawnId,targetId){
+  const pawn=getPawn(pawnId),from=getT(pawn.location),to=getT(targetId);
+  from.pawns=from.pawns.filter(id=>id!==pawnId);to.pawns.push(pawnId);pawn.location=targetId;movedPawnIds.add(pawnId);
+  if(!G.firstClaims[targetId]&&!to.isStart){G.firstClaims[targetId]=G.currentPlayer;cp().prestige+=1;logMsg(`⚑ ${cp().name} first to claim ${to.name}! +1 ★`,'lg-prestige');}
+  logMsg(`${cp().name} moved a pawn to ${to.name}.`);
+  return to.pawns.filter(pid=>{const q=getPawn(pid);return q&&q.player!==G.currentPlayer;}).length>0;
+}
+
+function doCombat(attPawnId,defPlayerId,terrId,onDone){
+  const terr=getT(terrId);
+  if(terr.isStart){onDone&&onDone();return;}
+  const defPawnId=terr.pawns.find(pid=>getPawn(pid)?.player===defPlayerId);
+  if(!defPawnId){onDone&&onDone();return;}
+  let aRoll=rollPawn(attPawnId),dRoll=rollPawn(defPawnId);
+  while(aRoll===dRoll){aRoll=rollPawn(attPawnId);dRoll=rollPawn(defPawnId);}
+  const aP=G.players[getPawn(attPawnId).player],dP=G.players[getPawn(defPawnId).player];
+  const attWins=aRoll>dRoll,loserPawnId=attWins?defPawnId:attPawnId,loserPl=attWins?dP:aP,winner=attWins?aP:dP;
+  const lp=getPawn(loserPawnId);terr.pawns=terr.pawns.filter(id=>id!==loserPawnId);
+  lp.location='start';lp.upgraded=false;getT('start').pawns.push(lp.id);
+  winner.prestige+=1;
+  logMsg(`\u2694\uFE0F ${aP.name} rolled ${aRoll} vs ${dP.name} rolled ${dRoll} in ${terr.name} \u2014 ${winner.name} wins! +1 \u2605`,'lg-combat');
+  if(aP.isHuman||dP.isHuman){
+    const DIE=['1','2','3','4','5','6'];
+    document.getElementById('modal-title').textContent=`\u2694\uFE0F Battle for ${terr.name}!`;
+    document.getElementById('modal-body').innerHTML=
+      `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:center">
+        <div><div style="color:${aP.color};font-weight:700;margin-bottom:8px;font-family:'Cinzel',serif">${aP.name}${!aP.isHuman?' \u{1F916}':''}</div>
+          <div class="dice-row"><div class="die rolling" id="die-att">?</div></div>
+          <div id="att-icon" style="font-size:1.5rem;min-height:1.8rem;margin-top:5px"></div></div>
+        <div><div style="color:${dP.color};font-weight:700;margin-bottom:8px;font-family:'Cinzel',serif">${dP.name}${!dP.isHuman?' \u{1F916}':''}</div>
+          <div class="dice-row"><div class="die rolling" id="die-def">?</div></div>
+          <div id="def-icon" style="font-size:1.5rem;min-height:1.8rem;margin-top:5px"></div></div>
+      </div>
+      <div id="combat-verdict" style="text-align:center;margin-top:12px;min-height:2.6rem;font-size:0.92rem;line-height:1.5"></div>`;
+    const be=document.getElementById('modal-btns');be.innerHTML='';
+    const btn=document.createElement('button');btn.className='mbtn mbtn-ghost';btn.textContent='Rolling\u2026';btn.disabled=true;btn.id='cbt-cont';be.appendChild(btn);
+    document.getElementById('modal-overlay').classList.add('open');
+    let frame=0;
+    const iv=setInterval(()=>{
+      frame++;
+      const da=document.getElementById('die-att'),dd=document.getElementById('die-def');
+      if(da)da.textContent=DIE[Math.floor(Math.random()*6)];if(dd)dd.textContent=DIE[Math.floor(Math.random()*6)];
+      if(frame>=22){clearInterval(iv);
+        if(da){da.textContent=DIE[aRoll-1];da.classList.remove('rolling');da.classList.add(attWins?'die-win':'die-lose');}
+        if(dd){dd.textContent=DIE[dRoll-1];dd.classList.remove('rolling');dd.classList.add(attWins?'die-lose':'die-win');}
+        const ai=document.getElementById('att-icon'),di=document.getElementById('def-icon');
+        if(ai)ai.textContent=attWins?'\u{1F3C6}':'\u{1F480}';if(di)di.textContent=attWins?'\u{1F480}':'\u{1F3C6}';
+        const v=document.getElementById('combat-verdict');
+        if(v)v.innerHTML=`<b style="color:${winner.color}">${winner.name} takes ${terr.name}! +1 ★</b><br><span style="color:var(--muted);font-size:0.8rem">${loserPl.name}'s pawn returns to Neutral Waters.</span>`;
+        const b2=document.getElementById('cbt-cont');if(b2){b2.textContent='Continue';b2.disabled=false;b2.className='mbtn mbtn-gold';b2.onclick=()=>{closeModal();renderAll();onDone&&onDone();};}
+      }
+    },70);
+  } else {renderAll();onDone&&onDone();}
+}
+
+function doUpgrade(pawnId){
+  const pl=cp();if(pl.resources.iron<1||pl.resources.coal<1)return false;
+  pl.resources.iron--;pl.resources.coal--;getPawn(pawnId).upgraded=true;
+  logMsg(`${pl.name} upgraded a unit in ${getT(getPawn(pawnId).location).name}! (\u22121\u2699\uFE0F \u22121\uD83E\uDEA8)`,'lg-event');return true;
+}
+
+function doBuildFactory(terrId){
+  const pl=cp(),t=getT(terrId);
+  if(!t||!t.resource||t.isStart||t.factory!==null)return false;
+  const cheap=G.roundFx?.cheapFactory;
+  if(pl.resources.iron<1||pl.resources.coal<1)return false;
+  if(!cheap&&pl.resources.salt<1)return false;
+  pl.resources.iron--;pl.resources.coal--;if(!cheap)pl.resources.salt--;
+  t.factory=G.currentPlayer;pl.prestige+=2;
+  logMsg(`${pl.name} built a \uD83C\uDFED Factory in ${t.name}! +2 \u2605`,'lg-event');return true;
+}
+
+function doCollect(){
+  const pl=cp(),gained={coal:0,diamonds:0,gold:0,iron:0,salt:0},counted=new Set();
+  myPawns(G.currentPlayer).forEach(p=>{const t=getT(p.location);if(t.resource&&!counted.has(p.location)){gained[t.resource]++;counted.add(p.location);}});
+  Object.entries(G.territories).forEach(([tid,t])=>{if(t.factory===G.currentPlayer&&t.resource&&!counted.has(tid)){gained[t.resource]++;counted.add(tid);}});
+  if(G.roundFx?.bonusRes){const rb=G.roundFx.bonusRes;if(Object.values(gained).some(v=>v>0))gained[rb.type]=(gained[rb.type]||0)+rb.amt;}
+  const coast=hasCoast(G.currentPlayer);
+  if(!coast&&Object.values(gained).some(v=>v>0)){for(const r of Object.keys(gained))gained[r]=Math.floor(gained[r]/2);logMsg(`\u26A0\uFE0F ${pl.name} has no coastal access \u2014 collection halved!`,'lg-warn');}
+  const parts=[];for(const[r,amt]of Object.entries(gained))if(amt>0){pl.resources[r]+=amt;parts.push(`${RES[r].em}\xD7${amt}`);}
+  logMsg(parts.length>0?`${pl.name} collected: ${parts.join(', ')}`:`${pl.name} collected nothing.`,'lg-collect');
+  // Prestige: coastal + subregion
+  let pGain=0;
+  if(coast)pGain++;
+  for(const[,terrIds]of Object.entries(SUBREGIONS)){const n=terrIds.filter(tid=>myPawns(G.currentPlayer).some(p=>p.location===tid)).length;if(n===terrIds.length)pGain+=2;}
+  if(pGain>0){pl.prestige+=pGain;logMsg(`${pl.name} +${pGain} \u2605 Prestige (region control)`,'lg-prestige');}
+}
+
+function advanceTurn(){
+  doCollect();movedPawnIds=new Set();selectedPawnId=null;validMoves=[];
+  G.currentPlayer=(G.currentPlayer+1)%4;G.phase='move';
+  if(G.currentPlayer===0){
+    G.round++;if(G.round>15){endGame();return;}
+    logMsg(`\u2500\u2500\u2500 Round ${G.round} begins \u2500\u2500\u2500`,'lg-event');
+    renderAll();
+    if(G.round===5&&!G.berlinHeld){triggerBerlinConference(()=>scheduleCurrentTurn());return;}
+    if(G.round>=2){drawEventCard(()=>scheduleCurrentTurn());return;}
+    G.roundFx={};
+  }
+  renderAll();scheduleCurrentTurn();
+}
+
+// ═══════════════════════════════════════════════════
+// TURN SCHEDULER
+// ═══════════════════════════════════════════════════
+function scheduleCurrentTurn(){
+  updatePhaseUI();
+  if(!cp().isHuman){document.getElementById('cpu-thinking').style.display='block';setTimeout(runCpuTurn,800+Math.random()*400);}
+  else document.getElementById('cpu-thinking').style.display='none';
+}
+
+// ═══════════════════════════════════════════════════
+// CPU AI
+// ═══════════════════════════════════════════════════
+function cpuTerrScore(tid,pid){
+  const t=getT(tid);if(!t)return -99;
+  if(t.isStart)return -20;
+  const base=t.resource?RES[t.resource].pts:0;
+  const alreadyMine=t.pawns.some(p=>{const q=getPawn(p);return q&&q.player===pid;});
+  const myFactory=t.factory===pid,enemyHere=t.pawns.some(p=>{const q=getPawn(p);return q&&q.player!==pid;});
+  let score=base;
+  if(alreadyMine)score*=0.15;if(myFactory&&!enemyHere)score*=0.1;if(enemyHere)score*=0.6;
+  if(!alreadyMine&&!enemyHere&&!myFactory)score*=1.4;
+  score+=t.conn.reduce((s,nid)=>{const nt=getT(nid);return s+(nt&&nt.resource?RES[nt.resource].pts*0.08:0);},0);
+  if(t.resource&&t.factory===null&&!t.isStart)score+=(G.roundFx?.cheapFactory||G.players[pid].resources.salt>=1)?1.8:0.6;
+  if(COASTAL.has(tid)&&!hasCoast(pid))score+=4;
+  if(t.resistance&&t.resistTokens>0)score*=(1-0.15*t.resistTokens);
+  return score;
+}
+
+function cpuAttemptMove(pawn,targetId){
+  const t=getT(targetId);
+  if(t.resistance&&t.resistTokens>0){
+    const rd=RESIST_DATA[targetId];const roll=rollDie();
+    if(roll>=rd.threshold){t.resistTokens--;doMove(pawn.id,targetId);logMsg(`\uD83D\uDEE1\uFE0F ${cp().name} overcame resistance in ${t.name} (rolled ${roll})`,'lg-resist');}
+    else{movedPawnIds.add(pawn.id);logMsg(`\uD83D\uDEE1\uFE0F ${cp().name} repelled from ${t.name} (rolled ${roll}, needed ${rd.threshold})`,'lg-resist');}
+  } else {doMove(pawn.id,targetId);}
+}
+
+function runCpuTurn(){
+  const pid=G.currentPlayer,pl=cp();
+  logMsg(`\uD83E\uDD16 ${pl.name} (CPU) taking turn\u2026`,'lg-cpu');
+  // Move all pawns
+  const toMove=[...myPawns(pid)].filter(p=>!movedPawnIds.has(p.id));
+  for(const pawn of toMove){
+    if(movedPawnIds.has(pawn.id))continue;
+    const reachable=getReachable(pawn.id);
+    if(pawn.location==='start'){
+      if(reachable.length){let best=reachable[0],bv=-Infinity;for(const tid of reachable){const s=cpuTerrScore(tid,pid);if(s>bv){bv=s;best=tid;}}cpuAttemptMove(pawn,best);}
+      else movedPawnIds.add(pawn.id);continue;
+    }
+    if(!reachable.length){movedPawnIds.add(pawn.id);continue;}
+    let best=null,bv=-Infinity;for(const tid of reachable){const s=cpuTerrScore(tid,pid);if(s>bv){bv=s;best=tid;}}
+    if(best&&bv>cpuTerrScore(pawn.location,pid)*0.85)cpuAttemptMove(pawn,best);else movedPawnIds.add(pawn.id);
+  }
+  // Factories first (passive income > upgrades)
+  const facCandidates=myPawns(pid).filter(p=>{const t=getT(p.location);return t.resource&&!t.isStart&&t.factory===null;}).sort((a,b)=>RES[getT(b.location).resource].pts-RES[getT(a.location).resource].pts);
+  for(const pawn of facCandidates){const cheap=G.roundFx?.cheapFactory;if(pl.resources.iron>=1&&pl.resources.coal>=1&&(cheap||pl.resources.salt>=1))doBuildFactory(pawn.location);else break;}
+  // Upgrades
+  const upgCandidates=myPawns(pid).filter(p=>!p.upgraded).sort((a,b)=>(getT(b.location).resource?RES[getT(b.location).resource].pts:0)-(getT(a.location).resource?RES[getT(a.location).resource].pts:0));
+  for(const pawn of upgCandidates){if(pl.resources.iron>=1&&pl.resources.coal>=1)doUpgrade(pawn.id);else break;}
+  renderAll();
+  // Combat
+  const battles=[];const seenT=new Set();
+  for(const pawn of myPawns(pid)){const t=getT(pawn.location);if(t.isStart)continue;const eid=t.pawns.find(epid=>{const q=getPawn(epid);return q&&q.player!==pid;});if(eid&&!seenT.has(pawn.location)){seenT.add(pawn.location);battles.push({attId:pawn.id,defPid:getPawn(eid).player,terrId:pawn.location});}}
+  const finish=()=>{document.getElementById('cpu-thinking').style.display='none';advanceTurn();};
+  function runB(i){if(i>=battles.length){finish();return;}const b=battles[i];const terr=getT(b.terrId);const ok=terr&&!terr.isStart&&terr.pawns.some(p=>getPawn(p)?.player===pid)&&terr.pawns.some(p=>getPawn(p)?.player===b.defPid);if(!ok){runB(i+1);return;}doCombat(b.attId,b.defPid,b.terrId,()=>runB(i+1));}
+  runB(0);
+}
+
+// ═══════════════════════════════════════════════════
+// HUMAN INTERACTION
+// ═══════════════════════════════════════════════════
+function handlePawnClick(pawnId){
+  if(!cp().isHuman||G.phase!=='move')return;
+  if(movedPawnIds.has(pawnId)){logMsg('That pawn already moved this turn.');return;}
+  selectedPawnId=selectedPawnId===pawnId?null:pawnId;validMoves=selectedPawnId?getReachable(pawnId):[];
+  renderAll();updatePhaseUI();
+}
+
+function attemptMoveHuman(pawnId,terrId){
+  const t=getT(terrId);
+  if(t.resistance&&t.resistTokens>0){
+    const rd=RESIST_DATA[terrId];
+    document.getElementById('modal-title').textContent=`\uD83D\uDEE1\uFE0F ${rd.label} Resists!`;
+    document.getElementById('modal-body').innerHTML=
+      `<div class="hist-box"><div class="hl">Why They Resist</div><p>${rd.flavor}</p></div>
+       <p style="margin:10px 0 4px">You need to roll <b style="color:var(--gold)">${rd.threshold} or higher</b> to enter ${t.name}.</p>
+       <p style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">Resistance tokens remaining: ${t.resistTokens}</p>
+       <div class="dice-row"><div class="die rolling" id="die-resist">?</div></div>
+       <div id="resist-result" style="text-align:center;min-height:2rem;margin-top:8px;font-size:0.9rem"></div>`;
+    const be=document.getElementById('modal-btns');be.innerHTML='';
+    const btn=document.createElement('button');btn.className='mbtn mbtn-ghost';btn.textContent='Rolling\u2026';btn.disabled=true;be.appendChild(btn);
+    document.getElementById('modal-overlay').classList.add('open');
+    const roll=rollDie(),success=roll>=rd.threshold;
+    let frame=0;
+    const iv=setInterval(()=>{
+      frame++;const d=document.getElementById('die-resist');if(d)d.textContent=Math.floor(Math.random()*6)+1;
+      if(frame>=18){clearInterval(iv);
+        const d2=document.getElementById('die-resist');if(d2){d2.textContent=roll;d2.classList.remove('rolling');d2.classList.add(success?'die-win':'die-lose');}
+        const res=document.getElementById('resist-result');
+        if(res)res.innerHTML=success?`<b style="color:#2ecc71">Success! (${roll} \u2265 ${rd.threshold})</b> — Your forces enter ${t.name}!`:`<b style="color:#e74c3c">Repelled! (${roll} < ${rd.threshold})</b> — Local resistance drives back your forces.`;
+        btn.textContent=success?'Advance!':'Retreat';btn.className=success?'mbtn mbtn-gold':'mbtn mbtn-ghost';btn.disabled=false;
+        btn.onclick=()=>{closeModal();
+          if(success){t.resistTokens--;
+            const hadEnemies=doMove(pawnId,terrId);selectedPawnId=null;validMoves=[];
+            if(hadEnemies&&!t.isStart){const eid=t.pawns.find(pid=>{const q=getPawn(pid);return q&&q.player!==G.currentPlayer;});if(eid){renderAll();showCombatOffer(pawnId,getPawn(eid).player,terrId);return;}}
+          } else {movedPawnIds.add(pawnId);logMsg(`${cp().name} repelled from ${t.name} (rolled ${roll}, needed ${rd.threshold})`,'lg-resist');selectedPawnId=null;validMoves=[];}
+          renderAll();updatePhaseUI();};
+      }
+    },70);
+    return;
+  }
+  // Normal move
+  const hadEnemies=doMove(pawnId,terrId);selectedPawnId=null;validMoves=[];
+  if(hadEnemies&&!t.isStart){const eid=t.pawns.find(pid=>{const q=getPawn(pid);return q&&q.player!==G.currentPlayer;});if(eid){renderAll();showCombatOffer(pawnId,getPawn(eid).player,terrId);return;}}
+  renderAll();updatePhaseUI();
+}
+
+function handleMapClick(terrId){
+  if(!cp().isHuman)return;
+  if(G.phase==='move'){
+    if(selectedPawnId&&validMoves.includes(terrId))attemptMoveHuman(selectedPawnId,terrId);
+    else if(!selectedPawnId){const t=getT(terrId);const mp=t.pawns.map(getPawn).find(p=>p&&p.player===G.currentPlayer&&!movedPawnIds.has(p.id));if(mp)handlePawnClick(mp.id);}
+  }
+}
+
+function showCombatOffer(attId,defPid,terrId){
+  const defP=G.players[defPid],terr=getT(terrId);
+  if(terr.isStart){updatePhaseUI();return;}
+  showModal('\u2694\uFE0F Military Action',
+    `<p>${cp().name} entered <b>${terr.name}</b>, occupied by <b style="color:${defP.color}">${defP.name}${!defP.isHuman?' \uD83E\uDD16':''}</b>!</p>
+     <p style="margin-top:7px;color:var(--muted);font-size:0.86rem">Do you wish to engage in combat?</p>`,
+    [{label:'\u2694\uFE0F Attack!',cls:'mbtn-gold',fn:()=>{closeModal();doCombat(attId,defPid,terrId,()=>{renderAll();updatePhaseUI();});}},
+     {label:'Stay peaceful',cls:'mbtn-ghost',fn:()=>{closeModal();updatePhaseUI();}}]);
+}
+
+// Human action dialogs
+function openUpgradeDialog(){
+  const pawns=myPawns(G.currentPlayer).filter(p=>!p.upgraded);if(!pawns.length)return;
+  showModal('\u2B06\uFE0F Upgrade Unit',
+    `<p style="margin-bottom:10px;color:var(--muted);font-size:0.86rem">Choose a pawn to upgrade (costs 1\u2699\uFE0F + 1\uD83E\uDEA8):</p>`+
+    pawns.map(p=>`<label style="display:flex;align-items:center;gap:8px;padding:7px;border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:4px"><input type="radio" name="upg" value="${p.id}">Pawn in <b>${getT(p.location).name}</b></label>`).join(''),
+    [{label:'Upgrade',cls:'mbtn-gold',fn:()=>{const sel=document.querySelector('input[name="upg"]:checked');if(sel){closeModal();doUpgrade(sel.value);renderAll();updatePhaseUI();}}},{label:'Cancel',cls:'mbtn-ghost',fn:closeModal}]);
+}
+
+function openFactoryDialog(){
+  const pl=cp(),cheap=G.roundFx?.cheapFactory;
+  if(pl.resources.iron<1||pl.resources.coal<1||(!cheap&&pl.resources.salt<1)){showModal('\uD83C\uDFED Build Factory',`<p>Not enough resources! Need 1\u2699\uFE0F + 1\uD83E\uDEA8${cheap?'':' + 1\uD83E\uDDC2'}.</p>`,[{label:'Close',cls:'mbtn-ghost',fn:closeModal}]);return;}
+  const locs=myPawns(G.currentPlayer).filter(p=>{const t=getT(p.location);return t.resource&&t.factory===null&&!t.isStart;});
+  if(!locs.length){showModal('\uD83C\uDFED Build Factory','<p>No valid territories to build in.</p>',[{label:'Close',cls:'mbtn-ghost',fn:closeModal}]);return;}
+  showModal('\uD83C\uDFED Build Factory',
+    `<p style="margin-bottom:10px;color:var(--muted);font-size:0.86rem">Choose territory${cheap?' (Royal Charter — no Salt needed!)':''}:</p>`+
+    locs.map(p=>{const t=getT(p.location);return`<label style="display:flex;align-items:center;gap:8px;padding:7px;border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:4px"><input type="radio" name="fac" value="${p.location}"><span>${RES[t.resource].em}</span>${t.name}${COASTAL.has(p.location)?' \uD83C\uDF0A':''}</label>`}).join(''),
+    [{label:'Build (+2 \u2605)',cls:'mbtn-gold',fn:()=>{const sel=document.querySelector('input[name="fac"]:checked');if(sel){closeModal();doBuildFactory(sel.value);renderAll();updatePhaseUI();}}},{label:'Cancel',cls:'mbtn-ghost',fn:closeModal}]);
+}
+
+function openTradeDialog(){
+  const pl=cp(),pawns=myPawns(G.currentPlayer);
+  const tradable=new Set();pawns.forEach(mp=>getT(mp.location).pawns.forEach(pid=>{const q=getPawn(pid);if(q&&q.player!==G.currentPlayer)tradable.add(q.player);}));
+  if(!tradable.size){logMsg('No adjacent players to trade with.');return;}
+  const partnerIdx=[...tradable][0],partner=G.players[partnerIdx];
+  const rows=(pRes,pfx)=>Object.entries(RES).map(([k,v])=>`<div class="trade-res-row"><span>${v.em}</span><span style="color:var(--muted);flex:1;font-size:0.78rem">${v.name} (${pRes[k]})</span><input class="trade-input" id="${pfx}-${k}" type="number" min="0" max="${pRes[k]}" value="0"></div>`).join('');
+  document.getElementById('modal-body').innerHTML=`<p style="margin-bottom:9px;font-size:0.84rem;color:var(--muted)">Trading with ${partner.name}${!partner.isHuman?' (CPU)':''}</p><div class="trade-grid"><div class="trade-panel"><h4 style="color:${pl.color}">${pl.name} gives:</h4>${rows(pl.resources,'give')}</div><div class="trade-panel"><h4 style="color:${partner.color}">${partner.name} gives:</h4>${rows(partner.resources,'recv')}</div></div>`;
+  showModal('\uD83E\uDD1D Trade Resources','',
+    [{label:'Confirm Trade',cls:'mbtn-gold',fn:()=>{
+      let ok=true;const gives={},recvs={};
+      for(const k of Object.keys(RES)){gives[k]=parseInt(document.getElementById(`give-${k}`)?.value||0)||0;recvs[k]=parseInt(document.getElementById(`recv-${k}`)?.value||0)||0;if(gives[k]>pl.resources[k]||recvs[k]>partner.resources[k])ok=false;}
+      if(!ok){logMsg('Trade failed: not enough resources!');closeModal();return;}
+      for(const k of Object.keys(RES)){pl.resources[k]+=recvs[k]-gives[k];partner.resources[k]+=gives[k]-recvs[k];}
+      logMsg(`${pl.name} and ${partner.name} completed a trade!`,'lg-event');closeModal();renderAll();updatePhaseUI();}},
+     {label:'Cancel',cls:'mbtn-ghost',fn:closeModal}]);
+}
+
+function openCombatDialog(){
+  const pairs=[];
+  myPawns(G.currentPlayer).forEach(mp=>{const t=getT(mp.location);if(t.isStart)return;t.pawns.forEach(pid=>{const q=getPawn(pid);if(q&&q.player!==G.currentPlayer){const ep=G.players[q.player];pairs.push({attId:mp.id,defPid:q.player,terrId:mp.location,terrName:t.name,epName:ep.name,epColor:ep.color,isCpu:!ep.isHuman});}});});
+  if(!pairs.length)return;
+  const deduped=[];const seen=new Set();pairs.forEach(pr=>{const k=`${pr.attId}-${pr.defPid}-${pr.terrId}`;if(!seen.has(k)){seen.add(k);deduped.push(pr);}});
+  showModal('\u2694\uFE0F Choose Combat',
+    `<p style="margin-bottom:10px;color:var(--muted);font-size:0.86rem">Select an enemy to attack:</p>`+
+    deduped.map((pr,i)=>`<label style="display:flex;align-items:center;gap:8px;padding:7px;border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:4px"><input type="radio" name="cmb" value="${i}">Attack <b style="color:${pr.epColor}">${pr.epName}${pr.isCpu?' \uD83E\uDD16':''}</b> in ${pr.terrName}</label>`).join(''),
+    [{label:'\u2694\uFE0F Attack!',cls:'mbtn-gold',fn:()=>{const sel=document.querySelector('input[name="cmb"]:checked');if(sel){const pr=deduped[parseInt(sel.value)];closeModal();doCombat(pr.attId,pr.defPid,pr.terrId,()=>{renderAll();updatePhaseUI();});}}},{label:'Cancel',cls:'mbtn-ghost',fn:closeModal}]);
+}
+
+// ═══════════════════════════════════════════════════
+// PHASE UI
+// ═══════════════════════════════════════════════════
+function updatePhaseUI(){
+  const pl=cp();
+  document.getElementById('round-num').textContent=G.round;
+  document.getElementById('turn-badge').textContent=`${pl.name}${!pl.isHuman?' \uD83E\uDD16':''}`;
+  document.getElementById('turn-badge').style.color=pl.color;
+  document.getElementById('turn-badge').style.borderColor=pl.color;
+  document.getElementById('cp-name').innerHTML=`\u2756 ${pl.name}${!pl.isHuman?` <span style="font-size:0.68rem;color:var(--muted)">(CPU)</span>`:''}`;
+  document.getElementById('cp-name').style.color=pl.color;
+  const coast=hasCoast(G.currentPlayer);
+  document.getElementById('cp-status').innerHTML=
+    `<span style="color:${coast?'#5a9':'#e67e22'}">${coast?'\uD83D\uDEA2 Coastal access':'\u26A0\uFE0F No coast \u2014 halved!'}</span>`+
+    `<span style="color:#f39c12">\u2605 ${pl.prestige} Prestige</span>`;
+  document.getElementById('cp-resources').innerHTML=Object.entries(RES).map(([k,v])=>`<div class="res-item"><span class="res-em">${v.em}</span><span class="res-name">${v.name}</span><span class="res-count">${pl.resources[k]}</span></div>`).join('');
+  const btns=document.getElementById('action-btns');btns.innerHTML='';
+  if(!pl.isHuman){document.getElementById('phase-title').innerHTML=`<b style="color:var(--gold)">CPU TURN</b>`;document.getElementById('phase-hint').textContent='CPU is playing…';renderScoreboard();return;}
+  const mp=myPawns(G.currentPlayer),canMove=mp.filter(p=>!movedPawnIds.has(p.id));
+  const sharesEnemy=mp.some(p=>!getT(p.location).isStart&&getT(p.location).pawns.some(pid=>{const q=getPawn(pid);return q&&q.player!==G.currentPlayer;}));
+  const cheap=G.roundFx?.cheapFactory;
+  const canUpgrade=pl.resources.iron>=1&&pl.resources.coal>=1&&mp.some(p=>!p.upgraded);
+  const canFactory=pl.resources.iron>=1&&pl.resources.coal>=1&&(cheap||pl.resources.salt>=1)&&mp.some(p=>{const t=getT(p.location);return t.resource&&t.factory===null&&!t.isStart;});
+  document.getElementById('phase-title').innerHTML=`Phase: <b style="color:var(--gold)">${G.phase.toUpperCase()}</b>`;
+  if(G.phase==='move'){
+    document.getElementById('phase-hint').textContent=selectedPawnId?'Pawn selected — click a highlighted territory.':canMove.length>0?`Click a pawn, then its destination. (${canMove.length} left)`:'All pawns moved.';
+    if(selectedPawnId)mkBtn('\u2715 Deselect Pawn','btn-sec',()=>{selectedPawnId=null;validMoves=[];renderAll();updatePhaseUI();});
+    mkBtn('\u23E9 Proceed to Actions','btn-gold',()=>{G.phase='action';selectedPawnId=null;validMoves=[];renderAll();updatePhaseUI();});
+  } else {
+    document.getElementById('phase-hint').textContent='Choose an action or end your turn.';
+    if(canUpgrade)mkBtn(`\u2B06\uFE0F Upgrade Unit  (1\u2699\uFE0F + 1\uD83E\uDEA8)`,'btn-sec',openUpgradeDialog);
+    if(canFactory)mkBtn(`\uD83C\uDFED Build Factory  ${cheap?'(1\u2699\uFE0F + 1\uD83E\uDEA8 \uD83D\uDCDC)':'(1\u2699\uFE0F + 1\uD83E\uDEA8 + 1\uD83E\uDDC2)'}`,'btn-sec',openFactoryDialog);
+    if(sharesEnemy)mkBtn('\u2694\uFE0F Initiate Combat','btn-red',openCombatDialog);
+    if(sharesEnemy)mkBtn('\uD83E\uDD1D Trade Resources','btn-sec',openTradeDialog);
+    mkBtn('\u2705 End Turn & Collect','btn-gold',advanceTurn);
+  }
+  renderScoreboard();
+}
+function mkBtn(label,cls,fn){const b=document.createElement('button');b.className=`btn ${cls}`;b.innerHTML=label;b.addEventListener('click',fn);document.getElementById('action-btns').appendChild(b);}
+
+// ═══════════════════════════════════════════════════
+// MAP RENDER
+// ═══════════════════════════════════════════════════
+const NS='http://www.w3.org/2000/svg';
+const mkEl=(tag,attrs,txt)=>{const e=document.createElementNS(NS,tag);if(attrs)for(const[k,v]of Object.entries(attrs))e.setAttribute(k,String(v));if(txt!==undefined)e.textContent=txt;return e;};
+
+const AFRICA=`M 120,140 L 152,130 L 210,126 L 270,124 L 335,124 L 398,125 L 445,127 L 474,134 L 484,146 L 489,166 L 496,200 L 508,240 L 524,278 L 540,302 L 558,318 L 578,334 L 578,356 L 563,382 L 548,416 L 541,454 L 526,492 L 512,530 L 498,564 L 483,597 L 465,628 L 444,659 L 420,689 L 393,714 L 368,713 L 344,698 L 320,668 L 305,638 L 293,604 L 289,568 L 293,533 L 298,502 L 294,474 L 290,456 L 295,440 L 308,422 L 315,408 L 297,400 L 270,396 L 237,404 L 200,413 L 162,417 L 140,416 L 115,407 L 96,392 L 78,370 L 64,346 L 66,326 L 70,306 L 76,286 L 83,264 L 90,244 L 97,225 L 103,205 L 108,186 L 113,168 L 116,152 Z`;
+const MADA=`M 552,490 L 568,480 L 584,494 L 590,518 L 584,544 L 573,558 L 559,548 L 547,532 L 547,508 Z`;
+
+function renderAll(){
+  const svg=document.getElementById('map-svg');svg.innerHTML='';
+  svg.appendChild(mkEl('rect',{x:0,y:0,width:650,height:720,fill:'#071524'}));
+  for(let x=50;x<650;x+=100)svg.appendChild(mkEl('line',{x1:x,y1:0,x2:x,y2:720,stroke:'rgba(200,169,81,0.04)','stroke-width':1}));
+  for(let y=50;y<720;y+=100)svg.appendChild(mkEl('line',{x1:0,y1:y,x2:650,y2:y,stroke:'rgba(200,169,81,0.04)','stroke-width':1}));
+  svg.appendChild(mkEl('path',{d:AFRICA,fill:'#1e2e14',stroke:'#3a4e2a','stroke-width':1.5}));
+  svg.appendChild(mkEl('path',{d:MADA,fill:'#1e2e14',stroke:'#3a4e2a','stroke-width':1.5}));
+  const drawn=new Set();
+  for(const[id,t]of Object.entries(G.territories))for(const c of t.conn){const key=[id,c].sort().join('_');if(drawn.has(key))continue;drawn.add(key);const tc=G.territories[c];if(!tc)continue;svg.appendChild(mkEl('line',{x1:t.x,y1:t.y,x2:tc.x,y2:tc.y,stroke:'rgba(200,169,81,0.18)','stroke-width':1.2,'stroke-dasharray':'3,4'}));}
+
+  for(const[id,t]of Object.entries(G.territories)){
+    const isSel=selectedPawnId&&getPawn(selectedPawnId)?.location===id;
+    const isVal=validMoves.includes(id);const r=t.isStart?22:18;
+    const g=mkEl('g',{'data-id':id});g.style.cursor='pointer';g.addEventListener('click',()=>handleMapClick(id));
+    // Large hit area
+    g.appendChild(mkEl('circle',{cx:t.x,cy:t.y,r:28,fill:'transparent','pointer-events':'all'}));
+    if(isVal)g.appendChild(mkEl('circle',{cx:t.x,cy:t.y,r:r+9,fill:'rgba(0,255,130,0.1)',stroke:'rgba(0,255,130,0.6)','stroke-width':1.5}));
+    if(isSel)g.appendChild(mkEl('circle',{cx:t.x,cy:t.y,r:r+10,fill:'rgba(255,255,255,0.06)',stroke:'rgba(255,255,255,0.6)','stroke-width':2}));
+    const occupiers=[...new Set(t.pawns.map(pid=>getPawn(pid)?.player).filter(p=>p!==undefined&&p!==null))];
+    if(occupiers.length===1)g.appendChild(mkEl('circle',{cx:t.x,cy:t.y,r:r+3,fill:'none',stroke:G.players[occupiers[0]].color,'stroke-width':2.5,opacity:0.65}));
+    g.appendChild(mkEl('circle',{cx:t.x,cy:t.y,r,fill:RCOL[t.region]||'#555',stroke:isSel?'#fff':isVal?'#00ff88':'rgba(200,169,81,0.4)','stroke-width':isSel||isVal?2.5:1,opacity:0.95}));
+
+    // Resource badge (above node)
+    if(t.resource){
+      const bx=t.x,by=t.y-r-12;
+      g.appendChild(mkEl('ellipse',{cx:bx,cy:by,rx:13,ry:10,fill:'rgba(5,15,30,0.88)',stroke:'rgba(200,169,81,0.45)','stroke-width':1.2}));
+      const em=mkEl('text',{x:bx,y:by+4,'text-anchor':'middle','font-size':13,'dominant-baseline':'middle','pointer-events':'none'});em.textContent=RES[t.resource].em;g.appendChild(em);
+    } else if(t.isStart){const em=mkEl('text',{x:t.x,y:t.y+5,'text-anchor':'middle','font-size':14,'dominant-baseline':'middle'});em.textContent='\u2693';g.appendChild(em);}
+
+    // Territory label
+    const label=t.name.length>11?t.name.slice(0,10)+'\u2026':t.name;
+    g.appendChild(mkEl('text',{x:t.x,y:t.y+r+10,'text-anchor':'middle','font-size':8,'fill':'rgba(232,220,192,0.72)','font-family':'Crimson Text,serif','pointer-events':'none'},label));
+
+    // Coastal badge (bottom-right)
+    if(COASTAL.has(id)&&!t.isStart){
+      g.appendChild(mkEl('circle',{cx:t.x+r-1,cy:t.y+r-1,r:7,fill:'#1a5a8a',stroke:'rgba(100,180,255,0.5)','stroke-width':1}));
+      const w=mkEl('text',{x:t.x+r-1,y:t.y+r+3,'text-anchor':'middle','font-size':8,'pointer-events':'none'});w.textContent='\uD83C\uDF0A';g.appendChild(w);
+    }
+    // Resistance token (top-left, red shield with count)
+    if(t.resistance&&t.resistTokens>0){
+      g.appendChild(mkEl('circle',{cx:t.x-r+1,cy:t.y-r+1,r:8,fill:'#7a0000',stroke:'rgba(255,80,80,0.6)','stroke-width':1.3}));
+      const sh=mkEl('text',{x:t.x-r+1,y:t.y-r+5,'text-anchor':'middle','font-size':8,'fill':'#ffaaaa','font-weight':'bold','pointer-events':'none'});sh.textContent=`\uD83D\uDEE1${t.resistTokens}`;g.appendChild(sh);
+    }
+    // Factory
+    if(t.factory!==null){
+      g.appendChild(mkEl('circle',{cx:t.x+r,cy:t.y-r,r:7,fill:G.players[t.factory].color,stroke:'#000','stroke-width':1.2}));
+      const fi=mkEl('text',{x:t.x+r,y:t.y-r+4,'text-anchor':'middle','font-size':8,'pointer-events':'none'});fi.textContent='\uD83C\uDFED';g.appendChild(fi);
+    }
+
+    // Pawns
+    const pawnsHere=t.pawns.map(getPawn).filter(Boolean);
+    if(pawnsHere.length){
+      const PR=12,clY=t.y+5,spread=pawnsHere.length===1?0:14,step=(Math.PI*2)/pawnsHere.length;
+      pawnsHere.forEach((pawn,idx)=>{
+        const ang=step*idx+(Math.PI/2),px=t.x+Math.cos(ang)*spread,py=clY+Math.sin(ang)*spread*(pawnsHere.length>2?0.7:0.5);
+        const isHP=cp().isHuman&&pawn.player===G.currentPlayer,canSel=isHP&&G.phase==='move'&&!movedPawnIds.has(pawn.id);
+        if(pawn.upgraded)g.appendChild(mkEl('circle',{cx:px,cy:py,r:PR+4,fill:'rgba(255,215,0,0.2)',stroke:'rgba(255,215,0,0.45)','stroke-width':1}));
+        g.appendChild(mkEl('circle',{cx:px+1,cy:py+2,r:PR,fill:'rgba(0,0,0,0.4)'}));
+        const pc=mkEl('circle',{cx:px,cy:py,r:PR,fill:G.players[pawn.player].color,stroke:canSel?'#fff':pawn.upgraded?'#ffd700':'rgba(0,0,0,0.6)','stroke-width':canSel?3:2});
+        pc.style.cursor=canSel?'pointer':'default';g.appendChild(pc);
+        if(canSel)g.appendChild(mkEl('circle',{cx:px,cy:py,r:PR+4,fill:'none',stroke:'rgba(255,255,255,0.5)','stroke-width':1.5,'stroke-dasharray':'3,2'}));
+        const lt=mkEl('text',{x:px,y:py+4,'text-anchor':'middle','font-size':9,'font-weight':'bold',fill:'rgba(255,255,255,0.95)','font-family':'Cinzel,serif','pointer-events':'none'});lt.textContent=pawn.upgraded?'\u2605':G.players[pawn.player].name[0];g.appendChild(lt);
+        if(canSel){const hit=mkEl('circle',{cx:px,cy:py,r:PR+8,fill:'transparent','pointer-events':'all',cursor:'pointer'});hit.addEventListener('click',ev=>{ev.stopPropagation();handlePawnClick(pawn.id);});g.appendChild(hit);}
+      });
+    }
+    svg.appendChild(g);
+  }
+  drawLegend(svg);drawPlayerKey(svg);
+}
+
+function drawLegend(svg){
+  const g=mkEl('g',{transform:'translate(8,620)'});
+  g.appendChild(mkEl('rect',{x:0,y:0,width:148,height:92,fill:'rgba(7,21,42,0.9)',rx:6,stroke:'rgba(200,169,81,0.2)','stroke-width':1}));
+  g.appendChild(mkEl('text',{x:7,y:13,fill:'rgba(200,169,81,0.65)','font-size':7.5,'letter-spacing':2,'font-family':'Cinzel,serif'},'UN SUBREGIONS'));
+  [['northern','Northern'],['western','Western'],['central','Central'],['eastern','Eastern'],['southern','Southern']].forEach(([k,name],i)=>{const y=22+i*11;g.appendChild(mkEl('circle',{cx:11,cy:y,r:4,fill:RCOL[k]}));g.appendChild(mkEl('text',{x:20,y:y+4,fill:'rgba(232,220,192,0.68)','font-size':8,'font-family':'Crimson Text,serif'},name+' Africa'));});
+  g.appendChild(mkEl('text',{x:7,y:78,fill:'rgba(100,180,255,0.7)','font-size':7.5},'🌊 Coastal  🛡️ Resistance'));
+  svg.appendChild(g);
+}
+
+function drawPlayerKey(svg){
+  const g=mkEl('g',{transform:'translate(466,6)'});
+  g.appendChild(mkEl('rect',{x:0,y:0,width:180,height:54,fill:'rgba(7,21,42,0.9)',rx:6,stroke:'rgba(200,169,81,0.2)','stroke-width':1}));
+  G.players.forEach((pl,i)=>{const x=(i%2)*88+8,y=i<2?15:36;g.appendChild(mkEl('circle',{cx:x,cy:y,r:5,fill:pl.color}));const lbl=mkEl('text',{x:x+9,y:y+4,fill:'rgba(232,220,192,0.82)','font-size':8.2,'font-family':'Crimson Text,serif'});lbl.textContent=`${pl.name.slice(0,7)} ${calcScore(pl)}+${pl.prestige}\u2605`;g.appendChild(lbl);});
+  svg.appendChild(g);
+}
+
+function renderScoreboard(){
+  document.getElementById('all-players-list').innerHTML=G.players.map(pl=>{
+    const score=calcScore(pl),total=calcFinal(pl);
+    const res=Object.entries(RES).map(([k,v])=>pl.resources[k]>0?`${v.em}${pl.resources[k]}`:'').filter(Boolean).join(' ')||'None';
+    return`<div class="player-card ${pl.id===G.currentPlayer?'active-player':''}">
+      <div class="pc-header"><div class="pc-dot" style="background:${pl.color}"></div><div class="pc-name" style="color:${pl.color}">${pl.name}</div>${!pl.isHuman?'<span class="pc-badge">\uD83E\uDD16 CPU</span>':''}<div class="pc-score">${total}</div></div>
+      <div class="pc-res">${res}</div>
+      <div class="pc-prestige">\u2605 ${pl.prestige} Prestige &nbsp;&nbsp;|&nbsp;&nbsp; Res: ${score}pts${hasCoast(pl.id)?'':' \u26A0\uFE0F No coast'}</div>
+    </div>`;
+  }).join('');
+}
+
+function endGame(){
+  const sorted=[...G.players].sort((a,b)=>calcFinal(b)-calcFinal(a));
+  document.getElementById('win-scores-list').innerHTML=sorted.map((pl,i)=>{
+    const res=calcScore(pl),pres=pl.prestige,total=calcFinal(pl);
+    const resBrk=Object.entries(RES).map(([k,v])=>pl.resources[k]>0?`${v.em}${pl.resources[k]}\xD7${v.pts}`:null).filter(Boolean).join(' ');
+    return`<div class="win-row ${i===0?'winner':''}">
+      <div class="win-dot" style="background:${pl.color}"></div>
+      <div>
+        <div style="font-weight:600">${pl.name}${!pl.isHuman?' \uD83E\uDD16':''}${i===0?' \uD83D\uDC51':''}</div>
+        <div class="win-sub">Resources: ${res}pts &nbsp;+&nbsp; Prestige: ${pres}★</div>
+        <div class="win-sub">${resBrk||'No resources'}</div>
+      </div>
+      <div class="win-pts">${total}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('win-screen').classList.add('open');
+  logMsg(`\uD83C\uDFC6 ${sorted[0].name} wins with ${calcFinal(sorted[0])} total points!`,'lg-event');
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL & LOG
+// ═══════════════════════════════════════════════════
+function showModal(title,bodyHtml,buttons){
+  document.getElementById('modal-title').textContent=title;
+  if(bodyHtml)document.getElementById('modal-body').innerHTML=bodyHtml;
+  const be=document.getElementById('modal-btns');be.innerHTML='';
+  buttons.forEach(b=>{const btn=document.createElement('button');btn.className=`mbtn ${b.cls}`;btn.textContent=b.label;btn.addEventListener('click',b.fn);be.appendChild(btn);});
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('modal-overlay'))closeModal();});
+
+function logMsg(msg,cls=''){const area=document.getElementById('log-area');const d=document.createElement('div');d.className=`log-line ${cls}`;d.textContent=msg;area.appendChild(d);area.scrollTop=area.scrollHeight;}
+</script>
+</body>
+</html>
